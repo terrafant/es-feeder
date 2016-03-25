@@ -2,11 +2,10 @@ package com.uay;
 
 import com.uay.elasticsearch.clients.esnative.PostNativeClient;
 import com.uay.elasticsearch.clients.jest.PostJestClient;
+import com.uay.elasticsearch.clients.rest.PostRestClient;
 import com.uay.elasticsearch.clients.springdata.PostSpringDataRepository;
-import com.uay.google.GoogleBlogpostsRetriever;
 import com.uay.elasticsearch.model.Post;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.uay.google.GoogleBlogpostsRetriever;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -27,6 +26,8 @@ public class App implements CommandLineRunner {
     @Autowired
     private PostJestClient postJestClient;
     @Autowired
+    private PostRestClient postRestClient;
+    @Autowired
     private GoogleBlogpostsRetriever googleBlogpostsRetriever;
 
     public static void main(String[] args) throws IOException, InterruptedException {
@@ -36,7 +37,8 @@ public class App implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         List<Post> posts = googleBlogpostsRetriever.retrievePosts();
-        postSpringDataRepository.save(posts);
+        postRestClient.save(posts);
+//        postSpringDataRepository.save(posts);
 //        postNativeClient.save(posts);
 //        postJestClient.save(posts);
     }

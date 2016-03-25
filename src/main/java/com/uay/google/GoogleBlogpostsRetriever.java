@@ -1,9 +1,11 @@
 package com.uay.google;
 
+import com.uay.elasticsearch.EsFactory;
 import com.uay.elasticsearch.model.Post;
 import com.uay.google.model.GooglePosts;
 import com.uay.google.model.Item;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -20,8 +22,10 @@ public class GoogleBlogpostsRetriever {
     private static final String BLOG_ID = "BLOG_ID";
     private static final String URL = "https://www.googleapis.com/blogger/v3/blogs/" + BLOG_ID + "/posts";
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     public List<Post> retrievePosts() {
-        RestTemplate restTemplate = new RestTemplate();
         GooglePosts googlePosts = null;
         List<Post> posts = new ArrayList<>();
         do {

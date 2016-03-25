@@ -8,5 +8,9 @@ public class EsConstants {
     public static final int REST_PORT = 9200;
     public static final String INDEX = "index_name";
     public static final String TYPE = "type_name";
+    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+
+    public static final String INDEX_TYPE_URL = "http://" + EsConstants.HOST_NAME + ":" + EsConstants.REST_PORT + "/" +
+            EsConstants.INDEX + "/" + EsConstants.TYPE;
 }
 
