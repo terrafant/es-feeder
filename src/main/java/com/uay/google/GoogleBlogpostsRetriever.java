@@ -1,6 +1,5 @@
 package com.uay.google;
 
-import com.uay.elasticsearch.EsFactory;
 import com.uay.elasticsearch.model.Post;
 import com.uay.google.model.GooglePosts;
 import com.uay.google.model.Item;

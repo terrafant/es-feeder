@@ -1,11 +1,10 @@
 package com.uay;
 
-import com.uay.elasticsearch.clients.esnative.PostNativeClient;
-import com.uay.elasticsearch.clients.jest.PostJestClient;
-import com.uay.elasticsearch.clients.rest.PostRestClient;
-import com.uay.elasticsearch.clients.springdata.PostSpringDataRepository;
+import com.uay.elasticsearch.clients.PostClient;
 import com.uay.elasticsearch.model.Post;
 import com.uay.google.GoogleBlogpostsRetriever;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -19,14 +18,16 @@ import java.util.List;
 @SpringBootApplication(exclude = {ElasticsearchAutoConfiguration.class, ElasticsearchDataAutoConfiguration.class})
 public class App implements CommandLineRunner {
 
+    private static final Logger logger = LoggerFactory.getLogger(App.class);
+
     @Autowired
-    private PostSpringDataRepository postSpringDataRepository;
+    private PostClient postSpringDataClient;
     @Autowired
-    private PostNativeClient postNativeClient;
+    private PostClient postNativeClient;
     @Autowired
-    private PostJestClient postJestClient;
+    private PostClient postJestClient;
     @Autowired
-    private PostRestClient postRestClient;
+    private PostClient postRestClient;
     @Autowired
     private GoogleBlogpostsRetriever googleBlogpostsRetriever;
 
@@ -36,10 +37,34 @@ public class App implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        importData();
+        searchData();
+    }
+
+    private void searchData() {
+        logger.info("--- Search");
+        List<Post> posts = postJestClient.searchWithInSituAnalyzer("query");
+//        posts = postSpringDataClient.searchWithInSituAnalyzer("query");
+//        posts = postRestClient.searchWithInSituAnalyzer("query");
+//        posts = postNativeClient.searchWithInSituAnalyzer("query");
+        posts.stream().forEach(post -> logger.info(post.getTitle()));
+
+        logger.info("--- Fuzzy search");
+//        posts = postJestClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
+//        posts = postSpringDataClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
+//        posts = postRestClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
+        posts = postNativeClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
+        posts.stream().forEach(post -> logger.info(post.getTitle()));
+    }
+
+    private void importData() {
+        logger.info("--- Retrieving blog posts");
         List<Post> posts = googleBlogpostsRetriever.retrievePosts();
+        logger.info("--- Saving blogposts");
         postRestClient.save(posts);
-//        postSpringDataRepository.save(posts);
+//        postSpringDataClient.save(posts);
 //        postNativeClient.save(posts);
 //        postJestClient.save(posts);
+        logger.info("--- Blogposts are saved");
     }
 }
