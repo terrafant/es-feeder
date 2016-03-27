@@ -1,6 +1,7 @@
 package com.uay;
 
 import com.uay.elasticsearch.clients.PostClient;
+import com.uay.elasticsearch.clients.esnative.PostNativeClient;
 import com.uay.elasticsearch.model.Post;
 import com.uay.google.GoogleBlogpostsRetriever;
 import org.slf4j.Logger;
@@ -23,7 +24,7 @@ public class App implements CommandLineRunner {
     @Autowired
     private PostClient postSpringDataClient;
     @Autowired
-    private PostClient postNativeClient;
+    private PostNativeClient postNativeClient;
     @Autowired
     private PostClient postJestClient;
     @Autowired
@@ -37,8 +38,9 @@ public class App implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        importData();
-        searchData();
+        postNativeClient.createIndexType("wow","bow");
+//        importData();
+//        searchData();
     }
 
     private void searchData() {

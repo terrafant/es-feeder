@@ -11,6 +11,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
@@ -34,6 +35,84 @@ public class PostNativeClient implements PostClient {
     @Autowired
     private Client client;
 
+    public boolean createIndexType(String index, String type) {
+        return client.admin().indices()
+                .prepareCreate(index)
+                .setSettings(buildSettings()).addMapping(type, buildMappings(type))
+                .execute().actionGet()
+                .isAcknowledged();
+    }
+
+    private XContentBuilder buildSettings() {
+        XContentBuilder mapping = null;
+        try {
+            mapping = jsonBuilder()
+                    .startObject()
+                        .startObject("analysis")
+                            .startObject("filter")
+                                .startObject("unique_stem")
+                                    .field("type", "unique")
+                                    .field("only_on_same_position", true)
+                                .endObject()
+                                .startObject("synonym")
+                                    .field("type", "synonym")
+                                    .field("format", "wordnet")
+                                    .field("synonyms_path", "wn_s.pl")
+                                .endObject()
+                            .endObject()
+                            .startObject("analyzer")
+                                .startObject("in_situ")
+                                    .field("tokenizer", "standard")
+                                    .field("filter")
+                                            .startArray()
+                                                .value("lowercase")
+                                                .value("keyword_repeat")
+                                                .value("porter_stem")
+                                                .value("synonym")
+                                                .value("unique_stem")
+                                            .endArray()
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return mapping;
+    }
+
+    private XContentBuilder buildMappings(String type) {
+        XContentBuilder mapping = null;
+        try {
+            mapping = jsonBuilder()
+                    .startObject()
+                        .startObject(type)
+                            .startObject("properties")
+                                .startObject("author")
+                                    .field("type", "string")
+                                .endObject()
+                                .startObject("body")
+                                    .field("type", "string")
+                                .endObject()
+                                .startObject("date")
+                                    .field("type", "date")
+                                    .field("format", "strict_date_optional_time||epoch_millis")
+                                .endObject()
+                                .startObject("keywords")
+                                    .field("type", "string")
+                                .endObject()
+                                .startObject("title")
+                                    .field("type", "string")
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return mapping;
+    }
+
     @Override
     public void save(List<Post> posts) {
         BulkRequestBuilder bulkRequest = client.prepareBulk();
@@ -56,8 +135,8 @@ public class PostNativeClient implements PostClient {
     @Override
     public List<Post> fuzzySearchWithKeywordFilter(String query, String keyword) {
         return search(QueryBuilders.boolQuery()
-                .must(QueryBuilders.fuzzyQuery(BODY_FIELD, query).fuzziness(Fuzziness.AUTO))
-                .filter(QueryBuilders.termQuery(KEYWORDS_FIELD, keyword))
+                        .must(QueryBuilders.fuzzyQuery(BODY_FIELD, query).fuzziness(Fuzziness.AUTO))
+                        .filter(QueryBuilders.termQuery(KEYWORDS_FIELD, keyword))
         );
     }
 
@@ -76,7 +155,7 @@ public class PostNativeClient implements PostClient {
 
     private List<Post> transformToPosts(SearchResponse searchResponse) {
         List<Post> posts = new ArrayList<>();
-        for(SearchHit hit: searchResponse.getHits().getHits()) {
+        for (SearchHit hit : searchResponse.getHits().getHits()) {
             posts.add(new Post(hit.getSource()));
         }
         return posts;
