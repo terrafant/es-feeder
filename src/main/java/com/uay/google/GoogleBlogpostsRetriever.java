@@ -1,6 +1,6 @@
 package com.uay.google;
 
-import com.uay.elasticsearch.model.Post;
+import com.uay.elasticsearch.model.Blogpost;
 import com.uay.google.model.GooglePosts;
 import com.uay.google.model.Item;
 import org.apache.commons.lang3.StringUtils;
@@ -24,14 +24,14 @@ public class GoogleBlogpostsRetriever {
     @Autowired
     private RestTemplate restTemplate;
 
-    public List<Post> retrievePosts() {
+    public List<Blogpost> retrievePosts() {
         GooglePosts googlePosts = null;
-        List<Post> posts = new ArrayList<>();
+        List<Blogpost> blogposts = new ArrayList<>();
         do {
             googlePosts = restTemplate.getForObject(constructUri(googlePosts), GooglePosts.class);
-            posts.addAll(convertToPosts(googlePosts));
+            blogposts.addAll(convertToPosts(googlePosts));
         } while (StringUtils.isNotEmpty(googlePosts.getNextPageToken()));
-        return posts;
+        return blogposts;
     }
 
     private URI constructUri(GooglePosts googlePosts) {
@@ -43,19 +43,19 @@ public class GoogleBlogpostsRetriever {
         return builder.build().encode().toUri();
     }
 
-    private List<Post> convertToPosts(GooglePosts googlePosts) {
+    private List<Blogpost> convertToPosts(GooglePosts googlePosts) {
         return googlePosts.getItems().stream()
                 .map(this::convertToPost)
                 .collect(Collectors.toList());
     }
 
-    private Post convertToPost(Item googlePost) {
-        Post post = new Post();
-        post.setTitle(googlePost.getTitle());
-        post.setBody(googlePost.getContent());
-        post.setDate(googlePost.getPublished());
-        post.setAuthor(googlePost.getAuthor().getDisplayName());
-        post.setKeywords(googlePost.getLabels());
-        return post;
+    private Blogpost convertToPost(Item googlePost) {
+        Blogpost blogpost = new Blogpost();
+        blogpost.setTitle(googlePost.getTitle());
+        blogpost.setBody(googlePost.getContent());
+        blogpost.setDate(googlePost.getPublished());
+        blogpost.setAuthor(googlePost.getAuthor().getDisplayName());
+        blogpost.setKeywords(googlePost.getLabels());
+        return blogpost;
     }
 }

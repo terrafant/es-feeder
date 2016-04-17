@@ -1,8 +1,8 @@
 package com.uay.elasticsearch.clients.esnative;
 
 import com.uay.elasticsearch.EsConstants;
-import com.uay.elasticsearch.clients.PostClient;
-import com.uay.elasticsearch.model.Post;
+import com.uay.elasticsearch.clients.BlogpostClient;
+import com.uay.elasticsearch.model.Blogpost;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
@@ -18,22 +18,56 @@ import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.uay.elasticsearch.model.Post.*;
+import static com.uay.elasticsearch.model.Blogpost.*;
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
-@Service
-public class PostNativeClient implements PostClient {
+@Service(EsConstants.BLOGPOST_CLIENT)
+@Profile("native")
+public class BlogpostEsNativeClient implements BlogpostClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(PostNativeClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(BlogpostEsNativeClient.class);
 
     @Autowired
     private Client client;
+
+    @Override
+    public List<Blogpost> searchQuery(String query) {
+        return search(QueryBuilders.matchPhraseQuery(BODY_FIELD, query));
+    }
+
+    @Override
+    public List<Blogpost> searchWithInSituAnalyzer(String query) {
+        return search(QueryBuilders.matchPhraseQuery(BODY_FIELD, query).analyzer("in_situ"));
+    }
+
+    @Override
+    public List<Blogpost> fuzzySearchWithKeywordFilter(String query, String keyword) {
+        return search(QueryBuilders.boolQuery()
+                .must(QueryBuilders.fuzzyQuery(BODY_FIELD, query).fuzziness(Fuzziness.AUTO))
+                .filter(QueryBuilders.termQuery(KEYWORDS_FIELD, keyword))
+        );
+    }
+
+    @Override
+    public void save(List<Blogpost> blogposts) {
+        BulkRequestBuilder bulkRequest = client.prepareBulk();
+        blogposts.stream()
+                .forEach(post -> bulkRequest.add(constructIndexRequestBuilder(client, post)));
+
+        BulkResponse bulkResponse = bulkRequest.execute().actionGet();
+        logger.info("Data was successfully imported");
+        logger.debug("Bulk request took: " + bulkResponse.getTook());
+        if (bulkResponse.hasFailures()) {
+            logger.error("Failure in bulkResponse = " + bulkResponse);
+        }
+    }
 
     public boolean createIndexType(String index, String type) {
         return client.admin().indices()
@@ -113,34 +147,7 @@ public class PostNativeClient implements PostClient {
         return mapping;
     }
 
-    @Override
-    public void save(List<Post> posts) {
-        BulkRequestBuilder bulkRequest = client.prepareBulk();
-        posts.stream()
-                .forEach(post -> bulkRequest.add(constructIndexRequestBuilder(client, post)));
-
-        BulkResponse bulkResponse = bulkRequest.execute().actionGet();
-        logger.info("Data was successfully imported");
-        logger.debug("Bulk request took: " + bulkResponse.getTook());
-        if (bulkResponse.hasFailures()) {
-            logger.error("Failure in bulkResponse = " + bulkResponse);
-        }
-    }
-
-    @Override
-    public List<Post> searchWithInSituAnalyzer(String query) {
-        return search(QueryBuilders.matchPhraseQuery(BODY_FIELD, query));
-    }
-
-    @Override
-    public List<Post> fuzzySearchWithKeywordFilter(String query, String keyword) {
-        return search(QueryBuilders.boolQuery()
-                        .must(QueryBuilders.fuzzyQuery(BODY_FIELD, query).fuzziness(Fuzziness.AUTO))
-                        .filter(QueryBuilders.termQuery(KEYWORDS_FIELD, keyword))
-        );
-    }
-
-    private List<Post> search(QueryBuilder queryBuilder) {
+    private List<Blogpost> search(QueryBuilder queryBuilder) {
         SearchRequestBuilder searchRequestBuilder = client.prepareSearch(EsConstants.INDEX)
                 .setTypes(EsConstants.TYPE)
                 .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
@@ -153,25 +160,25 @@ public class PostNativeClient implements PostClient {
         return transformToPosts(searchResponse);
     }
 
-    private List<Post> transformToPosts(SearchResponse searchResponse) {
-        List<Post> posts = new ArrayList<>();
+    private List<Blogpost> transformToPosts(SearchResponse searchResponse) {
+        List<Blogpost> blogposts = new ArrayList<>();
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            posts.add(new Post(hit.getSource()));
+            blogposts.add(new Blogpost(hit.getSource()));
         }
-        return posts;
+        return blogposts;
     }
 
-    private IndexRequestBuilder constructIndexRequestBuilder(Client client, Post post) {
+    private IndexRequestBuilder constructIndexRequestBuilder(Client client, Blogpost blogpost) {
         try {
             return client
                     .prepareIndex(EsConstants.INDEX, EsConstants.TYPE)
                     .setSource(jsonBuilder()
                                     .startObject()
-                                    .field(DATE_FIELD, post.getDate())
-                                    .field(AUTHOR_FIELD, post.getAuthor())
-                                    .field(BODY_FIELD, post.getBody())
-                                    .field(TITLE_FIELD, post.getTitle())
-                                    .field(KEYWORDS_FIELD, post.getKeywords())
+                                        .field(DATE_FIELD, blogpost.getDate())
+                                        .field(AUTHOR_FIELD, blogpost.getAuthor())
+                                        .field(BODY_FIELD, blogpost.getBody())
+                                        .field(TITLE_FIELD, blogpost.getTitle())
+                                        .field(KEYWORDS_FIELD, blogpost.getKeywords())
                                     .endObject()
                     );
         } catch (IOException ex) {
