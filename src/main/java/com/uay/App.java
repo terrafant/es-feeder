@@ -37,7 +37,7 @@ public class App implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-//        importData();
+        importData();
         searchData();
     }
 
