@@ -1,7 +1,7 @@
 package com.uay;
 
-import com.uay.elasticsearch.clients.PostClient;
-import com.uay.elasticsearch.model.Post;
+import com.uay.elasticsearch.clients.BlogpostClient;
+import com.uay.elasticsearch.model.Blogpost;
 import com.uay.google.GoogleBlogpostsRetriever;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,14 +20,14 @@ public class App implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(App.class);
 
+    private static final String EXISTENT_KEYWORD = "folder";
+    private static final String NON_EXISTENT_KEYWORD = "discovery";
+    private static final String MISTYPED_KEYWORD = "widespreat";
+    private static final String FILTER = "ldap";
+
     @Autowired
-    private PostClient postSpringDataClient;
-    @Autowired
-    private PostClient postNativeClient;
-    @Autowired
-    private PostClient postJestClient;
-    @Autowired
-    private PostClient postRestClient;
+    private BlogpostClient blogpostClient;
+
     @Autowired
     private GoogleBlogpostsRetriever googleBlogpostsRetriever;
 
@@ -37,34 +37,54 @@ public class App implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        importData();
+//        importData();
         searchData();
-    }
-
-    private void searchData() {
-        logger.info("--- Search");
-        List<Post> posts = postJestClient.searchWithInSituAnalyzer("query");
-//        posts = postSpringDataClient.searchWithInSituAnalyzer("query");
-//        posts = postRestClient.searchWithInSituAnalyzer("query");
-//        posts = postNativeClient.searchWithInSituAnalyzer("query");
-        posts.stream().forEach(post -> logger.info(post.getTitle()));
-
-        logger.info("--- Fuzzy search");
-//        posts = postJestClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
-//        posts = postSpringDataClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
-//        posts = postRestClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
-        posts = postNativeClient.fuzzySearchWithKeywordFilter("widespreat", "ldap");
-        posts.stream().forEach(post -> logger.info(post.getTitle()));
     }
 
     private void importData() {
         logger.info("--- Retrieving blog posts");
-        List<Post> posts = googleBlogpostsRetriever.retrievePosts();
+        List<Blogpost> blogposts = googleBlogpostsRetriever.retrievePosts();
+
         logger.info("--- Saving blogposts");
-        postRestClient.save(posts);
-//        postSpringDataClient.save(posts);
-//        postNativeClient.save(posts);
-//        postJestClient.save(posts);
+        blogpostClient.save(blogposts);
         logger.info("--- Blogposts are saved");
+    }
+
+    private void searchData() {
+        searchExistentKeyword();
+        searchNonExistentKeyword();
+        searchMistypedKeyword();
+    }
+
+    private void searchExistentKeyword() {
+        logger.info("- Search for an existent keyword: " + EXISTENT_KEYWORD);
+
+        logger.info("--- Simple search results:");
+        List<Blogpost> blogposts = blogpostClient.searchQuery(EXISTENT_KEYWORD);
+        blogposts.stream().forEach(post -> logger.info(post.getTitle()));
+    }
+
+    private void searchNonExistentKeyword() {
+        logger.info("- Search for a non existent keyword: " + NON_EXISTENT_KEYWORD);
+
+        logger.info("--- Simple search results:");
+        List<Blogpost> blogposts = blogpostClient.searchQuery(NON_EXISTENT_KEYWORD);
+        blogposts.stream().forEach(post -> logger.info(post.getTitle()));
+
+        logger.info("--- Search with in_situ analyzer results:");
+        blogposts = blogpostClient.searchWithInSituAnalyzer(NON_EXISTENT_KEYWORD);
+        blogposts.stream().forEach(post -> logger.info(post.getTitle()));
+    }
+
+    private void searchMistypedKeyword() {
+        logger.info("- Search for a mistyped keyword: " + NON_EXISTENT_KEYWORD);
+
+        logger.info("--- Simple search results:");
+        List<Blogpost> blogposts = blogpostClient.searchQuery(MISTYPED_KEYWORD);
+        blogposts.stream().forEach(post -> logger.info(post.getTitle()));
+
+        logger.info("--- Fuzzy search results:");
+        blogposts = blogpostClient.fuzzySearchWithKeywordFilter(MISTYPED_KEYWORD, FILTER);
+        blogposts.stream().forEach(post -> logger.info(post.getTitle()));
     }
 }

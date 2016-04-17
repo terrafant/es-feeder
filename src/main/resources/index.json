@@ -1,0 +1,52 @@
+{
+    "settings": {
+        "analysis": {
+            "filter": {
+                "unique_stem": {
+                    "type": "unique",
+                    "only_on_same_position": true
+                },
+                "synonym" : {
+                    "type": "synonym",
+                    "format": "wordnet",
+                    "synonyms_path": "wn_s.pl"
+                }
+            },
+            "analyzer": {
+                "in_situ": {
+                    "tokenizer": "standard",
+                    "filter": [
+                        "lowercase",
+                        "keyword_repeat",
+                        "porter_stem",
+                        "synonym",
+                        "unique_stem"
+                    ]
+                }
+            }
+        }
+    },
+    "mappings": {
+        "post": {
+            "properties": {
+                "author": {
+                    "type": "string"
+                },
+                "body": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "date",
+                    "format": "strict_date_optional_time||epoch_millis"
+                },
+                "keywords": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+
+}

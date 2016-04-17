@@ -1,6 +1,7 @@
 package com.uay.elasticsearch.model;
 
 import com.uay.elasticsearch.EsConstants;
+import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 @Document(indexName = EsConstants.INDEX, type = EsConstants.TYPE)
-public class Post {
+public class Blogpost {
 
     public static final String BODY_FIELD = "body";
     public static final String KEYWORDS_FIELD = "keywords";
@@ -24,10 +25,10 @@ public class Post {
     private String body;
     private List<String> keywords;
 
-    public Post() {
+    public Blogpost() {
     }
 
-    public Post(Map<String, Object> source) {
+    public Blogpost(Map<String, Object> source) {
         setTitle(source.get(TITLE_FIELD).toString());
         setAuthor(source.get(AUTHOR_FIELD).toString());
         setBody(source.get(BODY_FIELD).toString());
@@ -81,12 +82,6 @@ public class Post {
 
     @Override
     public String toString() {
-        return "Post{" +
-                "date='" + date + '\'' +
-                ", keywords='" + keywords + '\'' +
-                ", author='" + author + '\'' +
-                ", title='" + title + '\'' +
-                ", body='" + body + '\'' +
-                '}';
+        return ReflectionToStringBuilder.toString(this);
     }
 }
